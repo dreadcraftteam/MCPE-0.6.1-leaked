@@ -1,2 +1,2 @@
 ## MCPE 0.6.1 leaked
-This is part of the source code leaked on [4chan](https://boards.4chan.org/g/thread/108264778/minecraft-ps3-edition-source-code), which includes the developer build Minecraft PE 0.6.1.
+This is part of the source code leaked on [4chan](https://boards.4chan.org/g/thread/108264778/minecraft-ps3-edition-source-code), which includes the developer build of Minecraft PE 0.6.1.
