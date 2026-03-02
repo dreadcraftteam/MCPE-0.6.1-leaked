@@ -46,8 +46,12 @@ public:
 		static const Option USE_TOUCHSCREEN;
 		static const Option USE_TOUCH_JOYPAD;
 		static const Option DESTROY_VIBRATION;
+		static const Option GAMEPAD_INVERT_X;
+		static const Option GAMEPAD_INVERT_Y;
 
 		static const Option PIXELS_PER_MILLIMETER;
+		static const Option GAMEPAD_DEADZONE;
+		static const Option GAMEPAD_SENSITIVITY;
 
 		/*
         static Option* getItem(int id) {
@@ -161,6 +165,10 @@ public:
 	bool isJoyTouchArea;
 	bool useTouchScreen;
 	float pixelsPerMillimeter;
+	float gamepadDeadZone;
+	float gamepadSensitivity;
+	bool gamepadInvertX;
+	bool gamepadInvertY;
     Options(Minecraft* minecraft, const std::string& workingDirectory)
 	:	minecraft(minecraft)
 	{
@@ -205,6 +213,10 @@ public:
             sensitivity = value;
 		} else if (item == &Option::PIXELS_PER_MILLIMETER) {
 			 pixelsPerMillimeter = value;
+		} else if (item == &Option::GAMEPAD_DEADZONE) {
+			gamepadDeadZone = value;
+		} else if (item == &Option::GAMEPAD_SENSITIVITY) {
+			gamepadSensitivity = value;
 		}
 		notifyOptionUpdate(item, value);
     }
@@ -227,6 +239,8 @@ public:
 		if (option == &Option::USE_TOUCHSCREEN) useTouchScreen = !useTouchScreen;
 		if (option == &Option::USE_TOUCH_JOYPAD) isJoyTouchArea = !isJoyTouchArea;
 		if (option == &Option::DESTROY_VIBRATION) destroyVibration = !destroyVibration;
+		if (option == &Option::GAMEPAD_INVERT_X) gamepadInvertX = !gamepadInvertX;
+		if (option == &Option::GAMEPAD_INVERT_Y) gamepadInvertY = !gamepadInvertY;
 		if (option == &Option::ANAGLYPH) {
             anaglyph3d = !anaglyph3d;
             //minecraft->textures.reloadAll();
@@ -255,6 +269,8 @@ public:
         if (item == &Option::SOUND) return sound;
         if (item == &Option::SENSITIVITY) return sensitivity;
 		if (item == &Option::PIXELS_PER_MILLIMETER) return pixelsPerMillimeter;
+		if (item == &Option::GAMEPAD_DEADZONE) return gamepadDeadZone;
+		if (item == &Option::GAMEPAD_SENSITIVITY) return gamepadSensitivity;
         return 0;
     }
 
@@ -285,6 +301,10 @@ public:
 			return isJoyTouchArea;
 		if (item == &Option::DESTROY_VIBRATION)
 			return destroyVibration;
+		if (item == &Option::GAMEPAD_INVERT_X)
+			return gamepadInvertX;
+		if (item == &Option::GAMEPAD_INVERT_Y)
+			return gamepadInvertY;
 		return false;
 	}
 
@@ -293,6 +313,8 @@ public:
 		if (item == &Option::SOUND) return SOUND_MIN_VALUE;
 		if (item == &Option::SENSITIVITY) return SENSITIVITY_MIN_VALUE;
 		if (item == &Option::PIXELS_PER_MILLIMETER) return PIXELS_PER_MILLIMETER_MIN_VALUE;
+		if (item == &Option::GAMEPAD_DEADZONE) return 0.0f;
+		if (item == &Option::GAMEPAD_SENSITIVITY) return 0.1f;
 		return 0;
 	}
 
@@ -301,6 +323,8 @@ public:
 		if (item == &Option::SOUND) return SOUND_MAX_VALUE;
 		if (item == &Option::SENSITIVITY) return SENSITIVITY_MAX_VALUE;
 		if (item == &Option::PIXELS_PER_MILLIMETER) return PIXELS_PER_MILLIMETER_MAX_VALUE;
+		if (item == &Option::GAMEPAD_DEADZONE) return 0.5f;
+		if (item == &Option::GAMEPAD_SENSITIVITY) return 2.0f;
 		return 1.0f;
 	} 
 

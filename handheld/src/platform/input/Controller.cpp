@@ -18,8 +18,10 @@ void Controller::feed( int stickIndex, int state, float dx, float dy )
 {
 	if (!isValidStick(stickIndex)) return;
 
+	#if defined(ANDROID) || defined(__APPLE__)
 	if (NUM_STICKS == 2)
 		stickIndex = dx<0? 1 : 2;
+	#endif
 
 	isTouchedValues[stickIndex-1] = (state != STATE_RELEASE);
 
@@ -29,8 +31,10 @@ void Controller::feed( int stickIndex, int state, float dx, float dy )
 	// more sense as long as we cant figure out (in code) whether or not
 	// we actually use an Xperia -> hardcode it here (Note#2, we CAN figure
 	// figure this out, at least by JNI/java-call but we arent doing it)
+	#if defined(ANDROID) || defined(__APPLE__)
 	static float offsets[3] = {0, 0.64f, -0.64f};
 	dx =  linearTransform(dx + offsets[stickIndex], 0, 2.78f, true);
+	#endif
 
 	stickValuesX[stickIndex-1] = dx;
 	stickValuesY[stickIndex-1] = dy;

@@ -15,6 +15,10 @@ public:
 	static const char* Controls_UseTouchJoypad;
     static const char* Controls_IsLefthanded;
     static const char* Controls_FeedbackVibration;
+    static const char* Controls_GamepadDeadZone;
+    static const char* Controls_GamepadSensitivity;
+    static const char* Controls_GamepadInvertX;
+    static const char* Controls_GamepadInvertY;
 
 	static const char* Game_DifficultyLevel;
 };

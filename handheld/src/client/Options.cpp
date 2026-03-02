@@ -41,6 +41,10 @@ void Options::initDefaultValues() {
 	else
 		useTouchScreen = true;
 	pixelsPerMillimeter = minecraft->platform()->getPixelsPerMillimeter();
+	gamepadDeadZone = 0.18f;
+	gamepadSensitivity = 1.0f;
+	gamepadInvertX = false;
+	gamepadInvertY = false;
 	//useMouseForDigging = true;
 
 	//skin     = "Default";
@@ -92,7 +96,7 @@ void Options::initDefaultValues() {
 //	for now, then to have it spread all around the game code (even if
 //	it would be slightly better performance with it inlined. Should
 //  probably create separate subclasses (or read from file). @fix @todo.
-#if defined(ANDROID) || defined(__APPLE__) || defined(RPI)
+#if defined(ANDROID) || defined(__APPLE__) || defined(RPI) || defined(GEKKO)
     viewDistance = 2;
     thirdPersonView = false;
 	useMouseForDigging = false;
@@ -143,7 +147,11 @@ const Options::Option
 	Options::Option::USE_TOUCHSCREEN	 (16, "options.usetouchscreen", false, true),
 	Options::Option::USE_TOUCH_JOYPAD	 (17, "options.usetouchpad", false, true),
 	Options::Option::DESTROY_VIBRATION   (18, "options.destroyvibration", false, true),
-	Options::Option::PIXELS_PER_MILLIMETER(19, "options.pixelspermilimeter", true, false);
+	Options::Option::GAMEPAD_INVERT_X    (19, "options.gamepadinvertx", false, true),
+	Options::Option::GAMEPAD_INVERT_Y    (20, "options.gamepadinverty", false, true),
+	Options::Option::PIXELS_PER_MILLIMETER(21, "options.pixelspermilimeter", true, false),
+	Options::Option::GAMEPAD_DEADZONE    (22, "options.gamepaddeadzone", true, false),
+	Options::Option::GAMEPAD_SENSITIVITY (23, "options.gamepadsensitivity", true, false);
 
 /* private */
 const float Options::SOUND_MIN_VALUE = 0.0f;
@@ -217,6 +225,18 @@ void Options::update()
 			if (!minecraft->useTouchscreen())
 				isJoyTouchArea = false;
 		}
+		if (key == OptionStrings::Controls_GamepadDeadZone) {
+			readFloat(value, gamepadDeadZone);
+		}
+		if (key == OptionStrings::Controls_GamepadSensitivity) {
+			readFloat(value, gamepadSensitivity);
+		}
+		if (key == OptionStrings::Controls_GamepadInvertX) {
+			readBool(value, gamepadInvertX);
+		}
+		if (key == OptionStrings::Controls_GamepadInvertY) {
+			readBool(value, gamepadInvertY);
+		}
 
 		// Feedback
 		if (key == OptionStrings::Controls_FeedbackVibration)
@@ -242,6 +262,11 @@ void Options::update()
 				difficulty = Difficulty::NORMAL;
 		}
 	}
+
+	if (gamepadDeadZone < 0.0f) gamepadDeadZone = 0.0f;
+	if (gamepadDeadZone > 0.5f) gamepadDeadZone = 0.5f;
+	if (gamepadSensitivity < 0.1f) gamepadSensitivity = 0.1f;
+	if (gamepadSensitivity > 2.0f) gamepadSensitivity = 2.0f;
     
 #ifdef __APPLE__
 //    if (minecraft->isSuperFast()) {
@@ -304,6 +329,10 @@ void Options::save()
 	addOptionToSaveOutput(stringVec, OptionStrings::Controls_UseTouchScreen, useTouchScreen);
 	addOptionToSaveOutput(stringVec, OptionStrings::Controls_UseTouchJoypad, isJoyTouchArea);
 	addOptionToSaveOutput(stringVec, OptionStrings::Controls_FeedbackVibration, destroyVibration);
+	addOptionToSaveOutput(stringVec, OptionStrings::Controls_GamepadDeadZone, gamepadDeadZone);
+	addOptionToSaveOutput(stringVec, OptionStrings::Controls_GamepadSensitivity, gamepadSensitivity);
+	addOptionToSaveOutput(stringVec, OptionStrings::Controls_GamepadInvertX, gamepadInvertX);
+	addOptionToSaveOutput(stringVec, OptionStrings::Controls_GamepadInvertY, gamepadInvertY);
 // 
 // 	static const Option MUSIC;
 // 	static const Option SOUND;

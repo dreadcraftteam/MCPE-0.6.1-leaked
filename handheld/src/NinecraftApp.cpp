@@ -9,6 +9,7 @@
 
 #include "platform/input/Mouse.h"
 #include "platform/input/Multitouch.h"
+#include "platform/input/GCPadInput.h"
 
 #include "world/item/Item.h"
 #include "world/level/Level.h"
@@ -68,6 +69,9 @@ NinecraftApp::~NinecraftApp()
 
 void NinecraftApp::init()
 {
+#ifdef GEKKO
+	GCPadInput::init();
+#endif
 	// Global initialization goes here
 	Mth::initMth();
 
@@ -144,6 +148,9 @@ void NinecraftApp::update()
 
 	// Generate Multitouch active pointer list
 	Multitouch::commit();
+#ifdef GEKKO
+	GCPadInput::poll(options);
+#endif
 
 #ifndef ANDROID_PUBLISH
 	//testCreationAndDestruction();
