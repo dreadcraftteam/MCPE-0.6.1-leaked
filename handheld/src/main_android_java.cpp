@@ -1,8 +1,7 @@
 #include "App.h"
-#include "AppPlatform_android.h"
+#include "platform/android/AndroidPlatformAdapter.h"
 
 //#include "main_android_java.h"
-#include "platform/input/Multitouch.h"
 
 // Horrible, I know. / A
 #ifndef MAIN_CLASS
@@ -10,49 +9,7 @@
 #endif
 
 
-// References for JNI
-static jobject g_pActivity  = 0;
-static AppPlatform_android appPlatform;
-
-static void setupExternalPath(JNIEnv* env, MAIN_CLASS* app)
-{
-    //JVMAttacher ta(vm);
-    //JNIEnv* env = ta.getEnv();
-
-    LOGI("setupExternalPath");
-
-    if (env)
-    {
-        LOGI("Environment exists");
-    }
-    jclass clazz = env->FindClass("android/os/Environment");
-    jmethodID method = env->GetStaticMethodID(clazz, "getExternalStorageDirectory", "()Ljava/io/File;");
-    if (env->ExceptionOccurred()) {
-        env->ExceptionDescribe();
-    }
-    jobject file = env->CallStaticObjectMethod(clazz, method);
-
-    jclass fileClass = env->GetObjectClass(file);
-    jmethodID fileMethod = env->GetMethodID(fileClass, "getAbsolutePath", "()Ljava/lang/String;");
-    jobject pathString = env->CallObjectMethod(file, fileMethod);
-
-    const char* str = env->GetStringUTFChars((jstring) pathString, NULL);
-    app->externalStoragePath = str;
-	app->externalCacheStoragePath = str;
-    LOGI(str);
-
-    env->ReleaseStringUTFChars((jstring)pathString, str);
-}
-
-static void pointerDown(int pointerId, int x, int y) {
-    Multitouch::feed(1, 1, x, y, pointerId);
-}
-static void pointerUp(int pointerId, int x, int y) {
-    Multitouch::feed(1, 0, x, y, pointerId);
-}
-static void pointerMove(int pointerId, int x, int y) {
-    Multitouch::feed(0, 0, x, y, pointerId);
-}
+static AndroidPlatformAdapter gPlatform;
 
 
 static App* gApp = 0;
@@ -63,34 +20,32 @@ JNIEXPORT jint JNICALL
 JNI_OnLoad( JavaVM * vm, void * reserved )
 {
     LOGI("Entering OnLoad\n");
-    return appPlatform.init(vm);
+    return gPlatform.onLoad(vm);
 }
 
 // Register/save a reference to the java main activity instance
 JNIEXPORT void JNICALL
 Java_com_mojang_minecraftpe_MainActivity_nativeRegisterThis(JNIEnv* env, jobject clazz) {
     LOGI("@RegisterThis\n");
-    g_pActivity = (jobject)env->NewGlobalRef( clazz );
+    gPlatform.registerActivity(env, clazz);
 }
 
 // Unregister/delete the reference to the java main activity instance
 JNIEXPORT void JNICALL
 Java_com_mojang_minecraftpe_MainActivity_nativeUnregisterThis(JNIEnv* env, jobject clazz) {
     LOGI("@UnregisterThis\n");
-    env->DeleteGlobalRef( g_pActivity );
+    gPlatform.unregisterActivity(env);
 }
 
 JNIEXPORT void JNICALL
 Java_com_mojang_minecraftpe_MainActivity_nativeOnCreate(JNIEnv* env) {
     LOGI("@nativeOnCreate\n");
 
-    appPlatform.instance = g_pActivity;
-    appPlatform.initConsts();
+    gPlatform.bindToContext(gContext);
     gContext.doRender = false;
-    gContext.platform = &appPlatform;
 
     gApp = new MAIN_CLASS();
-    setupExternalPath(env, (MAIN_CLASS*)gApp);
+    gPlatform.configureStoragePaths(env, gApp);
     //gApp->init(gContext);
 }
 
@@ -146,7 +101,7 @@ Java_com_mojang_minecraftpe_GLRenderer_nativeUpdate(JNIEnv* env) {
         gApp->update();
 
         if (gApp->wantToQuit())
-            appPlatform.finish();
+            gPlatform.appPlatform().finish();
     }
 }
 
@@ -178,18 +133,18 @@ JNIEXPORT void JNICALL
 Java_com_mojang_minecraftpe_MainActivity_nativeMouseDown(JNIEnv* env, jclass cls, jint pointerId, jint buttonId, jfloat x, jfloat y) {
     //LOGI("@nativeMouseDown: %f %f\n", x, y);
     mouseDown(1, x, y);
-    pointerDown(pointerId, x, y);
+    gPlatform.pointerDown(pointerId, x, y);
 }
 JNIEXPORT void JNICALL
 Java_com_mojang_minecraftpe_MainActivity_nativeMouseUp(JNIEnv* env, jclass cls, jint pointerId, jint buttonId, jfloat x, jfloat y) {
     //LOGI("@nativeMouseUp: %f %f\n", x, y);
     mouseUp(1, x, y);
-    pointerUp(pointerId, x, y);
+    gPlatform.pointerUp(pointerId, x, y);
 }
 JNIEXPORT void JNICALL
 Java_com_mojang_minecraftpe_MainActivity_nativeMouseMove(JNIEnv* env, jclass cls, jint pointerId, jfloat x, jfloat y) {
     //LOGI("@nativeMouseMove: %f %f\n", x, y);
     mouseMove(x, y);
-    pointerMove(pointerId, x, y);
+    gPlatform.pointerMove(pointerId, x, y);
 }
 }

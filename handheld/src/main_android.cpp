@@ -1,5 +1,5 @@
 #include "App.h"
-#include "AppPlatform_android.h"
+#include "platform/android/AndroidPlatformAdapter.h"
 
 // Horrible, I know. / A
 #ifndef MAIN_CLASS
@@ -10,41 +10,7 @@
 
 // References for JNI
 static pthread_mutex_t g_activityMutex = PTHREAD_MUTEX_INITIALIZER;
-static jobject g_pActivity  = 0;
-static AppPlatform_android appPlatform;
-
-static void setupExternalPath(struct android_app* state, MAIN_CLASS* app)
-{
-    LOGI("setupExternalPath");
-
-    JNIEnv* env = state->activity->env;
-    state->activity->vm->AttachCurrentThread(&env, NULL);
-
-    if (env)
-    {
-        LOGI("Environment exists");
-    }
-    jclass clazz = env->FindClass("android/os/Environment");
-    jmethodID method = env->GetStaticMethodID(clazz, "getExternalStorageDirectory", "()Ljava/io/File;");
-    if (env->ExceptionOccurred()) {
-        env->ExceptionDescribe();
-    }
-    jobject file = env->CallStaticObjectMethod(clazz, method);
-
-    jclass fileClass = env->GetObjectClass(file);
-    jmethodID fileMethod = env->GetMethodID(fileClass, "getAbsolutePath", "()Ljava/lang/String;");
-    jobject pathString = env->CallObjectMethod(file, fileMethod);
-
-    const char* str = env->GetStringUTFChars((jstring) pathString, NULL);
-    app->externalStoragePath = str;
-	app->externalCacheStoragePath = str;
-    LOGI(str);
-
-    env->ReleaseStringUTFChars((jstring)pathString, str);
-
-    // We're done, detach!
-    state->activity->vm->DetachCurrentThread();
-}
+static AndroidPlatformAdapter gPlatform;
 
 extern "C" {
 JNIEXPORT jint JNICALL
@@ -54,14 +20,14 @@ JNIEXPORT jint JNICALL
 		pthread_mutex_lock(&g_activityMutex);
 
 		LOGI("Entering OnLoad %d\n", pthread_self());
-		return appPlatform.init(vm);
+		return gPlatform.onLoad(vm);
 	}
 
 	// Register/save a reference to the java main activity instance
 	JNIEXPORT void JNICALL
 	Java_com_mojang_minecraftpe_MainActivity_nativeRegisterThis(JNIEnv* env, jobject clazz) {
 		LOGI("@RegisterThis %d\n", pthread_self());
-		g_pActivity = (jobject)env->NewGlobalRef( clazz );
+		gPlatform.registerActivity(env, clazz);
 
 		pthread_mutex_unlock(&g_activityMutex);
 	}
@@ -70,8 +36,7 @@ JNIEXPORT jint JNICALL
 	JNIEXPORT void JNICALL
 	Java_com_mojang_minecraftpe_MainActivity_nativeUnregisterThis(JNIEnv* env, jobject clazz) {
 		LOGI("@UnregisterThis %d\n", pthread_self());
-		env->DeleteGlobalRef( g_pActivity ); 
-		g_pActivity = 0;
+		gPlatform.unregisterActivity(env);
 
 		pthread_mutex_destroy(&g_activityMutex);
 	}
@@ -87,7 +52,7 @@ static void internal_process_input(struct android_app* app, struct android_poll_
 	if (AInputQueue_getEvent(app->inputQueue, &event) >= 0) {
 		LOGV("New input event: type=%d\n", AInputEvent_getType(event));
 		bool isBackButtonDown = AKeyEvent_getKeyCode(event) == AKEYCODE_BACK && AKeyEvent_getAction(event) == AKEY_EVENT_ACTION_DOWN;
-		if(!(appPlatform.isKeyboardVisible() && isBackButtonDown)) {
+		if(!(gPlatform.appPlatform().isKeyboardVisible() && isBackButtonDown)) {
 			if (AInputQueue_preDispatchEvent(app->inputQueue, event)) {
 				return;
 			}
@@ -115,10 +80,7 @@ android_main( struct android_app* state )
     state->destroyRequested = 0;
 
     pthread_mutex_lock(&g_activityMutex);
-    appPlatform.instance = g_pActivity;
     pthread_mutex_unlock(&g_activityMutex);
-
-    appPlatform.initConsts();
 
     //LOGI("socket-stuff\n");
     //socketDesc = initSocket(1999);
@@ -129,9 +91,12 @@ android_main( struct android_app* state )
     engine.app          = state;
     engine.is_inited    = false;
     engine.appContext.doRender = true;
-    engine.appContext.platform = &appPlatform;
+    gPlatform.bindToContext(engine.appContext);
 
-    setupExternalPath(state, (MAIN_CLASS*)app);
+    JNIEnv* env = state->activity->env;
+    state->activity->vm->AttachCurrentThread(&env, NULL);
+    gPlatform.configureStoragePaths(env, app);
+    state->activity->vm->DetachCurrentThread();
 
     if( state->savedState != NULL )
     {
@@ -141,7 +106,7 @@ android_main( struct android_app* state )
 
     bool inited = false;
     bool teardownPhase = false;
-	appPlatform._nativeActivity = state->activity;
+	gPlatform.appPlatform()._nativeActivity = state->activity;
     // our 'main loop'
     while( 1 )
     {

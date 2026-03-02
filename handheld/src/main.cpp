@@ -38,3 +38,7 @@
 #endif
 
 
+
+#ifdef WII
+    #include "main_wii.cpp"
+#endif
